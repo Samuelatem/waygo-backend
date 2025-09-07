@@ -22,7 +22,11 @@ app.set('io', io);
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: [
+    process.env.FRONTEND_URL || 'http://localhost:5173',
+    'https://waygo-kwhwznloa-samuelatems-projects.vercel.app',
+    'https://waygo.vercel.app' // In case you get a custom domain
+  ],
   credentials: true
 }));
 app.use(morgan('combined'));
