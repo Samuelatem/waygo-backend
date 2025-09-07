@@ -11,7 +11,12 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: [
+      process.env.FRONTEND_URL || "http://localhost:5173",
+      'https://waygo-kwhwznloa-samuelatems-projects.vercel.app',
+      'https://waygo-g6qqsz11k-samuelatems-projects.vercel.app',
+      'https://waygo.vercel.app'
+    ],
     methods: ["GET", "POST"]
   }
 });
@@ -25,6 +30,7 @@ app.use(cors({
   origin: [
     process.env.FRONTEND_URL || 'http://localhost:5173',
     'https://waygo-kwhwznloa-samuelatems-projects.vercel.app',
+    'https://waygo-g6qqsz11k-samuelatems-projects.vercel.app',
     'https://waygo.vercel.app' // In case you get a custom domain
   ],
   credentials: true
@@ -64,6 +70,24 @@ const sosRoutes = require('./routes/sos');
 const walletRoutes = require('./routes/wallet');
 const adminRoutes = require('./routes/admin');
 const debugRoutes = require('./routes/debug');
+
+// Basic routes
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'WayGo Backend API is running!',
+    version: '1.0.0',
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/health', (req, res) => {
+  res.json({
+    success: true,
+    status: 'healthy',
+    timestamp: new Date().toISOString()
+  });
+});
 
 // Use routes
 app.use('/api/auth', authRoutes);
