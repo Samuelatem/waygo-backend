@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const Ride = require('../models/Ride');
 const { protect, authorize } = require('../middleware/auth');
@@ -145,6 +146,7 @@ const updateDriverStatus = async (req, res) => {
 // @access  Private (Driver only)
 const getDriverStats = async (req, res) => {
   try {
+    console.log('🔍 Getting driver stats for user ID:', req.user.id);
     const user = await User.findById(req.user.id);
 
     if (user.role !== 'driver') {
@@ -156,7 +158,7 @@ const getDriverStats = async (req, res) => {
 
     // Check if driver has any active rides
     const activeRide = await Ride.findOne({
-      driver: req.user.id,
+      driver: new mongoose.Types.ObjectId(req.user.id),
       status: { $in: ['accepted', 'started', 'in_progress'] }
     });
 
@@ -171,22 +173,28 @@ const getDriverStats = async (req, res) => {
 
     const [todayEarnings, weekEarnings, monthEarnings, totalEarnings] = await Promise.all([
       Ride.aggregate([
-        { $match: { driver: req.user.id, status: 'completed', completedAt: { $gte: today } } },
+        { $match: { driver: new mongoose.Types.ObjectId(req.user.id), status: 'completed', completedAt: { $gte: today } } },
         { $group: { _id: null, total: { $sum: '$fare.total' } } }
       ]),
       Ride.aggregate([
-        { $match: { driver: req.user.id, status: 'completed', completedAt: { $gte: weekStart } } },
+        { $match: { driver: new mongoose.Types.ObjectId(req.user.id), status: 'completed', completedAt: { $gte: weekStart } } },
         { $group: { _id: null, total: { $sum: '$fare.total' } } }
       ]),
       Ride.aggregate([
-        { $match: { driver: req.user.id, status: 'completed', completedAt: { $gte: monthStart } } },
+        { $match: { driver: new mongoose.Types.ObjectId(req.user.id), status: 'completed', completedAt: { $gte: monthStart } } },
         { $group: { _id: null, total: { $sum: '$fare.total' } } }
       ]),
       Ride.aggregate([
-        { $match: { driver: req.user.id, status: 'completed' } },
+        { $match: { driver: new mongoose.Types.ObjectId(req.user.id), status: 'completed' } },
         { $group: { _id: null, total: { $sum: '$fare.total' } } }
       ])
     ]);
+
+    console.log('📊 Earnings aggregation results for driver:', req.user.id);
+    console.log('   Today:', todayEarnings);
+    console.log('   Week:', weekEarnings);
+    console.log('   Month:', monthEarnings);
+    console.log('   Total:', totalEarnings);
 
     // In a real app, you'd calculate these from ride data
     const stats = {
@@ -205,6 +213,8 @@ const getDriverStats = async (req, res) => {
         total: totalEarnings[0]?.total || 0
       }
     };
+
+    console.log('💰 Final earnings object:', stats.earnings);
 
     res.json({
       success: true,
