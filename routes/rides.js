@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const Ride = require('../models/Ride');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
@@ -801,19 +802,19 @@ const completeRide = async (req, res) => {
 
       const [todayEarnings, weekEarnings, monthEarnings, totalEarnings] = await Promise.all([
         Ride.aggregate([
-          { $match: { driver: req.user.id, status: 'completed', completedAt: { $gte: today } } },
+          { $match: { driver: new mongoose.Types.ObjectId(req.user.id), status: 'completed', completedAt: { $gte: today } } },
           { $group: { _id: null, total: { $sum: '$fare.total' } } }
         ]),
         Ride.aggregate([
-          { $match: { driver: req.user.id, status: 'completed', completedAt: { $gte: weekStart } } },
+          { $match: { driver: new mongoose.Types.ObjectId(req.user.id), status: 'completed', completedAt: { $gte: weekStart } } },
           { $group: { _id: null, total: { $sum: '$fare.total' } } }
         ]),
         Ride.aggregate([
-          { $match: { driver: req.user.id, status: 'completed', completedAt: { $gte: monthStart } } },
+          { $match: { driver: new mongoose.Types.ObjectId(req.user.id), status: 'completed', completedAt: { $gte: monthStart } } },
           { $group: { _id: null, total: { $sum: '$fare.total' } } }
         ]),
         Ride.aggregate([
-          { $match: { driver: req.user.id, status: 'completed' } },
+          { $match: { driver: new mongoose.Types.ObjectId(req.user.id), status: 'completed' } },
           { $group: { _id: null, total: { $sum: '$fare.total' } } }
         ])
       ]);
@@ -824,6 +825,9 @@ const completeRide = async (req, res) => {
         month: monthEarnings[0]?.total || 0,
         total: totalEarnings[0]?.total || 0
       };
+
+      console.log('📊 Real-time earnings calculation for driver:', req.user.id);
+      console.log('💰 Updated earnings:', updatedEarnings);
 
       // Emit updated earnings to driver
       io.to(`driver_${req.user.id}`).emit('earnings_updated', {
