@@ -19,6 +19,7 @@ const io = socketIo(server, {
       'https://waygo-o1haz5d4z-samuelatems-projects.vercel.app',
       'https://waygo-5yuue33k0-samuelatems-projects.vercel.app',
       'https://waygo-g9zzigf2v-samuelatems-projects.vercel.app',
+      'https://waygo-qguua0w7f-samuelatems-projects.vercel.app',
       'https://waygo.vercel.app'
     ],
     methods: ["GET", "POST"]
@@ -39,6 +40,7 @@ app.use(cors({
     'https://waygo-o1haz5d4z-samuelatems-projects.vercel.app',
     'https://waygo-5yuue33k0-samuelatems-projects.vercel.app',
     'https://waygo-g9zzigf2v-samuelatems-projects.vercel.app',
+    'https://waygo-qguua0w7f-samuelatems-projects.vercel.app',
     'https://waygo.vercel.app' // In case you get a custom domain
   ],
   credentials: true
