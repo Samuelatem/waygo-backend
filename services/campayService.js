@@ -42,7 +42,7 @@ class CampayService {
         phone_number: phoneNumber,
         description: description || 'Wallet deposit',
         external_reference: externalReference,
-        callback_url: `${process.env.BASE_URL || 'https://waygo-backend-production.up.railway.app'}/api/wallet/campay-webhook`
+        callback_url: `${process.env.BASE_URL || 'https://waygo.up.railway.app'}/api/wallet/campay-webhook`
       };
 
       console.log('🚀 Initiating Campay payment collection:', paymentData);
