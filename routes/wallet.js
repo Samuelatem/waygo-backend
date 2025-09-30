@@ -153,31 +153,6 @@ router.post('/deposit', protect, async (req, res) => {
     wallet.transactions.push(transaction);
     await wallet.save();
 
-    // For testing purposes, we'll skip Campay integration and mark transaction as completed
-    // In production, uncomment the Campay integration below
-    
-    // Simulate successful payment for testing
-    const lastTransaction = wallet.transactions[wallet.transactions.length - 1];
-    lastTransaction.status = 'completed';
-    lastTransaction.completedAt = new Date();
-    lastTransaction.metadata.testMode = true;
-    
-    // Update wallet balance for test transaction
-    wallet.balance += amount;
-    await wallet.save();
-
-    res.json({
-      success: true,
-      message: 'Test deposit completed successfully (Campay integration disabled for testing)',
-      data: {
-        transaction: lastTransaction,
-        newBalance: wallet.balance,
-        testMode: true
-      }
-    });
-
-    /* 
-    // TODO: Enable Campay integration for production
     // Initiate Campay payment collection
     const campayResponse = await campayService.collectPayment(
       amount,
@@ -199,10 +174,9 @@ router.post('/deposit', protect, async (req, res) => {
       data: {
         transaction: lastTransaction,
         campayReference: campayResponse.paymentId,
-        paymentInstructions: campayResponse.data.instructions || 'Check your phone for payment instructions'
+        paymentInstructions: 'Check your phone for payment instructions and follow the prompts to complete the payment.'
       }
     });
-    */
   } catch (error) {
     console.error('Error processing deposit:', error);
     res.status(500).json({
@@ -269,32 +243,6 @@ router.post('/withdraw', protect, async (req, res) => {
     wallet.transactions.push(transaction);
     await wallet.save();
 
-    // For testing purposes, we'll skip Campay integration and mark transaction as completed
-    // In production, uncomment the Campay integration below
-    
-    // Simulate successful withdrawal for testing
-    const lastTransaction = wallet.transactions[wallet.transactions.length - 1];
-    lastTransaction.status = 'completed';
-    lastTransaction.completedAt = new Date();
-    lastTransaction.metadata.testMode = true;
-    
-    // Update wallet balance for test transaction (subtract withdrawal amount)
-    wallet.balance -= amount;
-    await wallet.save();
-
-    res.json({
-      success: true,
-      message: 'Test withdrawal completed successfully (Campay integration disabled for testing)',
-      data: {
-        transaction: lastTransaction,
-        newBalance: wallet.balance,
-        testMode: true,
-        estimatedTime: 'Completed immediately (test mode)'
-      }
-    });
-
-    /* 
-    // TODO: Enable Campay integration for production
     // Initiate Campay withdrawal
     const campayResponse = await campayService.withdrawPayment(
       amount,
@@ -319,7 +267,6 @@ router.post('/withdraw', protect, async (req, res) => {
         estimatedTime: '5-10 minutes'
       }
     });
-    */
   } catch (error) {
     console.error('Error processing withdrawal:', error);
     res.status(500).json({
@@ -368,6 +315,144 @@ router.post('/transfer', protect, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to process transfer',
+      error: error.message
+    });
+  }
+});
+
+// Pay for ride using wallet (rider pays driver)
+router.post('/pay-ride', protect, async (req, res) => {
+  try {
+    const { rideId, driverId, amount } = req.body;
+    
+    if (!rideId || !driverId || !amount || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Ride ID, driver ID, and valid amount are required'
+      });
+    }
+
+    // Verify the user is a rider
+    if (req.user.role !== 'rider') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only riders can pay for rides'
+      });
+    }
+
+    // Check if driver exists and is actually a driver
+    const driver = await User.findById(driverId);
+    if (!driver || driver.role !== 'driver') {
+      return res.status(404).json({
+        success: false,
+        message: 'Driver not found'
+      });
+    }
+
+    // Get rider's wallet
+    const riderWallet = await Wallet.findOne({ userId: req.user.id });
+    if (!riderWallet) {
+      return res.status(404).json({
+        success: false,
+        message: 'Rider wallet not found'
+      });
+    }
+
+    // Check if rider has sufficient balance
+    if (riderWallet.balance < amount) {
+      return res.status(400).json({
+        success: false,
+        message: 'Insufficient wallet balance. Please add funds to your wallet.',
+        currentBalance: riderWallet.balance,
+        requiredAmount: amount
+      });
+    }
+
+    // Get or create driver's wallet
+    let driverWallet = await Wallet.findOne({ userId: driverId });
+    if (!driverWallet) {
+      driverWallet = await Wallet.createWallet(driverId, 'driver');
+    }
+
+    // Generate transaction reference
+    const transactionReference = `RIDE_${rideId}_${Date.now()}`;
+
+    // Create transaction for rider (payment out)
+    const riderTransaction = {
+      type: 'ride_payment',
+      amount: amount,
+      status: 'completed',
+      description: `Payment for ride to ${driver.firstName} ${driver.lastName}`,
+      metadata: {
+        rideId: rideId,
+        driverId: driverId,
+        driverName: `${driver.firstName} ${driver.lastName}`,
+        transactionReference: transactionReference
+      },
+      createdAt: new Date(),
+      completedAt: new Date()
+    };
+
+    // Create transaction for driver (payment received)
+    const driverTransaction = {
+      type: 'ride_earning',
+      amount: amount,
+      status: 'completed',
+      description: `Payment received from ${req.user.firstName} ${req.user.lastName}`,
+      metadata: {
+        rideId: rideId,
+        riderId: req.user.id,
+        riderName: `${req.user.firstName} ${req.user.lastName}`,
+        transactionReference: transactionReference
+      },
+      createdAt: new Date(),
+      completedAt: new Date()
+    };
+
+    // Update balances and add transactions
+    riderWallet.balance -= amount;
+    driverWallet.balance += amount;
+    
+    riderWallet.transactions.push(riderTransaction);
+    driverWallet.transactions.push(driverTransaction);
+
+    // Save both wallets
+    await Promise.all([
+      riderWallet.save(),
+      driverWallet.save()
+    ]);
+
+    // Get the latest transactions
+    const riderLatestTransaction = riderWallet.transactions[riderWallet.transactions.length - 1];
+    const driverLatestTransaction = driverWallet.transactions[driverWallet.transactions.length - 1];
+
+    console.log('💳 Ride payment completed successfully:', {
+      rideId,
+      rider: `${req.user.firstName} ${req.user.lastName}`,
+      driver: `${driver.firstName} ${driver.lastName}`,
+      amount,
+      riderNewBalance: riderWallet.balance,
+      driverNewBalance: driverWallet.balance
+    });
+
+    res.json({
+      success: true,
+      message: 'Ride payment completed successfully',
+      data: {
+        rideId: rideId,
+        amount: amount,
+        riderNewBalance: riderWallet.balance,
+        driverNewBalance: driverWallet.balance,
+        riderTransaction: riderLatestTransaction,
+        driverTransaction: driverLatestTransaction,
+        transactionReference: transactionReference
+      }
+    });
+  } catch (error) {
+    console.error('Error processing ride payment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to process ride payment',
       error: error.message
     });
   }
