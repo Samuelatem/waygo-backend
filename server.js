@@ -13,10 +13,11 @@ const io = socketIo(server, {
   cors: {
     origin: [
       process.env.FRONTEND_URL || "http://localhost:5173",
-      'https://waygo-kwhwznloa-samuelatems-projects.vercel.app',
-      'https://waygo-g6qqsz11k-samuelatems-projects.vercel.app',
+      "http://localhost:5174",
       'https://waygo-1vwunfrle-samuelatems-projects.vercel.app',
       'https://waygo-g9zzigf2v-samuelatems-projects.vercel.app',
+      'https://waygo-eugtlgnnz-samuelatems-projects.vercel.app',
+      'https://waygo-b1it4btkw-samuelatems-projects.vercel.app',
       'https://waygo.vercel.app'
     ],
     methods: ["GET", "POST"]
@@ -31,10 +32,11 @@ app.use(helmet());
 app.use(cors({
   origin: [
     process.env.FRONTEND_URL || 'http://localhost:5173',
-    'https://waygo-kwhwznloa-samuelatems-projects.vercel.app',
-    'https://waygo-g6qqsz11k-samuelatems-projects.vercel.app',
+    'http://localhost:5174',
     'https://waygo-1vwunfrle-samuelatems-projects.vercel.app',
     'https://waygo-g9zzigf2v-samuelatems-projects.vercel.app',
+    'https://waygo-eugtlgnnz-samuelatems-projects.vercel.app',
+    'https://waygo-b1it4btkw-samuelatems-projects.vercel.app',
     'https://waygo.vercel.app' // In case you get a custom domain
   ],
   credentials: true
