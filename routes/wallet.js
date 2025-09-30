@@ -269,6 +269,32 @@ router.post('/withdraw', protect, async (req, res) => {
     wallet.transactions.push(transaction);
     await wallet.save();
 
+    // For testing purposes, we'll skip Campay integration and mark transaction as completed
+    // In production, uncomment the Campay integration below
+    
+    // Simulate successful withdrawal for testing
+    const lastTransaction = wallet.transactions[wallet.transactions.length - 1];
+    lastTransaction.status = 'completed';
+    lastTransaction.completedAt = new Date();
+    lastTransaction.metadata.testMode = true;
+    
+    // Update wallet balance for test transaction (subtract withdrawal amount)
+    wallet.balance -= amount;
+    await wallet.save();
+
+    res.json({
+      success: true,
+      message: 'Test withdrawal completed successfully (Campay integration disabled for testing)',
+      data: {
+        transaction: lastTransaction,
+        newBalance: wallet.balance,
+        testMode: true,
+        estimatedTime: 'Completed immediately (test mode)'
+      }
+    });
+
+    /* 
+    // TODO: Enable Campay integration for production
     // Initiate Campay withdrawal
     const campayResponse = await campayService.withdrawPayment(
       amount,
@@ -293,6 +319,7 @@ router.post('/withdraw', protect, async (req, res) => {
         estimatedTime: '5-10 minutes'
       }
     });
+    */
   } catch (error) {
     console.error('Error processing withdrawal:', error);
     res.status(500).json({
