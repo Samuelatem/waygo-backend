@@ -139,11 +139,4 @@ npm run lint
 | `MONGODB_URI` | Database connection | `mongodb://localhost:27017/waygo` |
 | `FRONTEND_URL` | Frontend URL for CORS | `http://localhost:5173` |
 
-## 🎯 Next Steps
-
-- [ ] Integrate with Campay.net API
-- [ ] Add Google Maps integration
-- [ ] Implement real-time notifications
-- [ ] Add admin dashboard
-- [ ] Implement ride rating system
-- [ ] Add analytics and reporting 
+ 
