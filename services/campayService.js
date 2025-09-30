@@ -42,10 +42,12 @@ class CampayService {
         phone_number: phoneNumber,
         description: description || 'Wallet deposit',
         external_reference: externalReference,
-        callback_url: `${process.env.BASE_URL || 'http://localhost:5000'}/api/wallet/campay-webhook`
+        callback_url: `${process.env.BASE_URL || 'https://waygo-backend-production.up.railway.app'}/api/wallet/campay-webhook`
       };
 
       console.log('🚀 Initiating Campay payment collection:', paymentData);
+      console.log('📡 Campay API URL:', `${this.baseURL}/collect/`);
+      console.log('🔑 Using token:', this.permanentAccessToken.substring(0, 10) + '...');
 
       const response = await this.api.post('/collect/', paymentData);
       
@@ -58,8 +60,18 @@ class CampayService {
         status: 'pending'
       };
     } catch (error) {
-      console.error('❌ Error initiating Campay payment:', error.response?.data || error.message);
-      throw new Error(`Campay payment failed: ${error.response?.data?.message || error.message}`);
+      console.error('❌ Error initiating Campay payment:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          baseURL: error.config?.baseURL
+        }
+      });
+      throw new Error(`Campay payment failed: ${error.response?.data?.message || error.response?.data?.detail || error.message}`);
     }
   }
 
@@ -75,6 +87,7 @@ class CampayService {
       };
 
       console.log('🚀 Initiating Campay withdrawal:', withdrawalData);
+      console.log('📡 Campay API URL:', `${this.baseURL}/withdraw/`);
 
       const response = await this.api.post('/withdraw/', withdrawalData);
       
@@ -87,8 +100,18 @@ class CampayService {
         status: 'pending'
       };
     } catch (error) {
-      console.error('❌ Error initiating Campay withdrawal:', error.response?.data || error.message);
-      throw new Error(`Campay withdrawal failed: ${error.response?.data?.message || error.message}`);
+      console.error('❌ Error initiating Campay withdrawal:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          baseURL: error.config?.baseURL
+        }
+      });
+      throw new Error(`Campay withdrawal failed: ${error.response?.data?.message || error.response?.data?.detail || error.message}`);
     }
   }
 
